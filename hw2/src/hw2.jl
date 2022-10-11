@@ -35,71 +35,123 @@ end
 function epsgreedy(eps, pos, actions, rewards)
     r = [rewards[pos + a] for a in actions]
     # Get all of the actions with the maximum reward
-    best1 = findall(x -> x == maximum(r), r)
+    best¹ = findall(x -> x == maximum(r), r)
     # If there are several, don't need to compare with eps
-    if length(best1) >= 2
-        return rand(best1)
+    if length(best¹) ≥ 2
+        return rand(best¹)
     end
-    best1 = best1[1]
+    best¹ = best¹[1]
     # Set the reward for the best to be as small as possible so we can find second-best
-    r[best1] = typemin(typeof(r[best1]))
+    r[best¹] = typemin(typeof(r[best¹]))
     # Find the second-best action
-    best2 = findall(x -> x == maximum(r), r)
+    best² = findall(x -> x == maximum(r), r)
     # If there's several second-best actions, choose one to work with
-    best2 = if length(best2) >= 2
-        rand(best2)
+    best² = if length(best²) ≥ 2
+        rand(best²)
     else
-        best2[1]
+        best²[1]
     end
     # Are we choosing the second-best action?
-    if rand() > eps
-        return best2
+    if rand() ≤ eps
+        return best²
     end
-    return best1
+    return best¹
 end
 
-function start_sim()
+# Run this function to see the scenario. `question` is either 1, 2, or 3, depending on the functionality required for the run.
+function start_sim(question)
     reward = zeros(Int, 5, 10)
     reward[4, 2] = 20
+    if question ≠ 1
+        # Multiple agents and targets
+        reward[1, 10] = 20
+    end
     # Index of action for a position
     # Note that depending on the number of available actions, the number might be
     # different for the same action (e.g., 'down' is 1 when along the top row, but
     # 2 when in any other row)
-    policy1 = [1 2 2 2 1 2 2 2 2 2
-               2 4 2 1 2 4 2 4 2 1
-               2 1 2 1 4 1 4 1 2 1
-               2 1 2 1 3 3 3 3 3 1
-               2 1 3 3 3 3 3 3 3 1]
+    π₁ = [1 2 2 2 1 2 2 2 2 2
+          2 4 2 1 2 4 2 4 2 1
+          2 1 2 1 4 1 4 1 2 1
+          2 1 2 1 3 3 3 3 3 1
+          2 1 3 3 3 3 3 3 3 1]
+    println("Original policy:")
+    display(π₁)
     # Policy for the second robot
-    #policy2 = copy(policy1)
+    π₂ = copy(π₁)
+    π = [π₁, π₂]
 
     # Calculate value function of each state for entire policy
     # Value function for each state, based on the policy. Won't always be updated.
-    pval1 = vals(1)
-    # Robot state: [Location, reward]
-    robot1 = [CartesianIndex(3, 4), 0]
+    pval₁ = if question == 1
+        vals(1)
+    else
+        vals(2)
+    end
+    pval₂ = copy(pval₁)
+    pval = [pval₁, pval₂]
+
+    # Robot state: [Location, reward, done]
+    robot₁ = [CartesianIndex(3, 4), 0, false]
+    robot₂ = copy(robot₁)
+    robots = if question == 1
+        [robot₁]
+    else
+        [robot₁, robot₂]
+    end
+    global_reward = false
     # Iterate:
-    while true
-        println("Current loc: ", robot1[1])
-        # Follow eps-greedy for next action (top 2)
-        actions = availactions(Tuple(robot1[1])...)
-        chosen_act = epsgreedy(0.9, robot1[1], actions, pval1)
-        # Update policy (if didn't take policy action)
-        policy1[robot1[1]] = chosen_act
-        # Recompute value of current state based on next action
-        #   (note that this may decrease or increase based on eps-greedy and/or changing environment)
-        pval1[robot1[1]] = pval1[robot1[1] + actions[chosen_act]] - 1
-        # Take action
-        robot1[1] += actions[chosen_act]
-        # Get any available rewards and take a timestep penalty
-        robot1[2] += reward[robot1[1]] - 1
-        println("New reward value: ", robot1[2])
-        if reward[robot1[1]] == 20
-            println("Found the target! Done.")
-            # Hit a target, make it disappear
-            reward[robot1[1]] = 0
-            break
+    # While not all robots are done:
+    while !all(getindex.(robots, 3))
+        for (i, robot) in enumerate(robots)
+            # If done, don't do anything
+            if robot[3]
+                continue
+            end
+            println("Robot ", i, " current loc: ", Tuple(robot[1]))
+            makemove!(robot, pval[i], π[i], reward, global_reward)
+            global_reward = false
+            if question == 3 && robot[3]
+                # Just got done, so we must have hit a target
+                global_reward = true
+            end
         end
+    end
+    if question == 1
+        println("Updated policy:")
+        display(π[1])
+    else
+        println("Updated policies:")
+        for πᵢ in π
+            display(πᵢ)
+        end
+    end
+end
+
+function makemove!(robot, pval, π, reward, global_reward)
+    # Follow ε-greedy for next action (top 2)
+    actions = availactions(Tuple(robot[1])...)
+    chosen_act = epsgreedy(0.1, robot[1], actions, pval)
+    # Update policy (if didn't take policy action)
+    π[robot[1]] = chosen_act
+    # Recompute value of current state based on next action
+    #   (note that this may decrease or increase based on ε-greedy and/or changing environment)
+    pval[robot[1]] = pval[robot[1] + actions[chosen_act]] - 1
+    if global_reward
+        robot[2] += 20
+        pval[robot[1]] += 20
+    end
+    # Take action
+    robot[1] += actions[chosen_act]
+    # Get any available rewards and take a timestep penalty
+    robot[2] += reward[robot[1]] - 1
+    println("New reward value: ", robot[2])
+    if reward[robot[1]] == 20
+        println("Found the target! Done.")
+        # Hit a target, make it disappear
+        reward[robot[1]] = 0
+        # Done with this robot
+        robot[3] = true
     end
 end
 
