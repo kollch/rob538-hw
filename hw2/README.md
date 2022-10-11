@@ -1,0 +1,1 @@
+Code is in the 'src' directory. The function which kicks off the scenarios for the different questions is `start_sim(question)`, where `question` is 1, 2, or 3.
