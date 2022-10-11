@@ -12,8 +12,9 @@ module hw2
 # Calculate value function of each state for entire policy
 # Iterate:
 #     Follow eps-greedy for next action (top 2)
+#     Update policy (if didn't take policy action)
 #     Recompute value of current state based on next action
-#       (since might not take best action, set as max of curr and new)
+#       (note that this may decrease or increase based on eps-greedy and/or changing environment)
 #     Take action
 
 greet() = print("Hello World!")
