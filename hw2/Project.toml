@@ -2,6 +2,3 @@ name = "hw2"
 uuid = "53a236e5-801a-4d80-8b6e-00ddde362cdd"
 authors = ["Charles Koll <kollch@oregonstate.edu>"]
 version = "0.1.0"
-
-[deps]
-Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
