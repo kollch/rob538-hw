@@ -1,0 +1,4 @@
+name = "hw3"
+uuid = "f086c06c-73d5-4712-968a-46c9d08211d5"
+authors = ["Charles Koll <kollch@oregonstate.edu>"]
+version = "0.1.0"
