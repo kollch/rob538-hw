@@ -3,8 +3,15 @@ module hw3
 export startsim
 
 function takeaction!(agent)
-	# Make chosen action the one with the highest estimated reward
-	agent.action = argmax(agent.estreward)
+	# Make chosen action ϵ-greedy (.2) with the highest estimated reward
+	maxreward = argmax(agent.estreward)
+	if rand() ≤ 0.1
+		# All indices except for the one with max reward
+		indices = [i for i ∈ 1:length(agent.estreward) if i ≠ maxreward]
+		agent.action = rand(indices)
+	else
+		agent.action = maxreward
+	end
 end
 
 dayreward(attended, b) = attended * exp(-attended / b)
@@ -119,10 +126,10 @@ function startsim(weeks, n, b, k)
 		attendance₄ = sysstate
 	end
 
-	println("Global reward: ", attendance₁)
-	println("Simple local reward: ", attendance₂)
-	println("Difference reward nonexistance: ", attendance₃)
-	println("Difference reward spread out: ", attendance₄)
+	println("Global reward:                  ", attendance₁, " (", systemreward(attendance₁, b), ")")
+	println("Simple local reward:            ", attendance₂, " (", systemreward(attendance₂, b), ")")
+	println("Difference reward nonexistance: ", attendance₃, " (", systemreward(attendance₃, b), ")")
+	println("Difference reward spread out:   ", attendance₄, " (", systemreward(attendance₄, b), ")")
 end
 
 mutable struct Agent
